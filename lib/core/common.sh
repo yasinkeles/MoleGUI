@@ -553,23 +553,23 @@ run_with_timeout() {
 
     "$@" &
     local cmd_pid=$!
-    
+
     # More efficient wait: use wait with timeout in subshell
     (
         sleep "$duration" &
         local timer_pid=$!
-        wait "$cmd_pid" 2>/dev/null && kill "$timer_pid" 2>/dev/null && exit 0
-        kill -TERM "$cmd_pid" 2>/dev/null || true
+        wait "$cmd_pid" 2> /dev/null && kill "$timer_pid" 2> /dev/null && exit 0
+        kill -TERM "$cmd_pid" 2> /dev/null || true
         sleep 0.5
-        kill -KILL "$cmd_pid" 2>/dev/null || true
+        kill -KILL "$cmd_pid" 2> /dev/null || true
         exit 124
     ) &
     local watcher_pid=$!
-    
-    wait "$cmd_pid" 2>/dev/null
+
+    wait "$cmd_pid" 2> /dev/null
     local exit_code=$?
-    kill "$watcher_pid" 2>/dev/null || true
-    wait "$watcher_pid" 2>/dev/null || true
+    kill "$watcher_pid" 2> /dev/null || true
+    wait "$watcher_pid" 2> /dev/null || true
     return $exit_code
 }
 

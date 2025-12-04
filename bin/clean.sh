@@ -277,7 +277,7 @@ safe_clean() {
                 local count
                 # Quick file count - limit for performance
                 if [[ "$size" -gt 0 ]]; then
-                    count=$(find "$path" -type f 2>/dev/null | head -1000 | wc -l | tr -d ' ')
+                    count=$(find "$path" -type f 2> /dev/null | head -1000 | wc -l | tr -d ' ')
                     [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]] && count=0
                 else
                     count=0
@@ -343,7 +343,7 @@ safe_clean() {
             [[ -z "$size_bytes" || ! "$size_bytes" =~ ^[0-9]+$ ]] && size_bytes=0
             # Quick file count for display - limit for performance
             if [[ "$size_bytes" -gt 0 ]]; then
-                count=$(find "$path" -type f 2>/dev/null | head -1000 | wc -l | tr -d ' ')
+                count=$(find "$path" -type f 2> /dev/null | head -1000 | wc -l | tr -d ' ')
                 [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]] && count=0
             else
                 count=0
@@ -392,13 +392,16 @@ safe_clean() {
 
                 # Get size from result file if it exists (parallel processing with temp_dir)
                 if [[ -n "${temp_dir:-}" && -f "$temp_dir/result_${idx}" ]]; then
-                    read -r size count < "$temp_dir/result_${idx}" 2>/dev/null || true
+                    read -r size count < "$temp_dir/result_${idx}" 2> /dev/null || true
                 else
                     # Get size directly (small batch processing or no temp_dir)
-                    size=$(get_path_size_kb "$path" 2>/dev/null || echo "0")
+                    size=$(get_path_size_kb "$path" 2> /dev/null || echo "0")
                 fi
 
-                [[ "$size" == "0" || -z "$size" ]] && { ((idx++)); continue; }
+                [[ "$size" == "0" || -z "$size" ]] && {
+                    ((idx++))
+                    continue
+                }
 
                 # Write parent|size|path to temp file
                 echo "$(dirname "$path")|$size|$path" >> "$paths_temp"
@@ -687,18 +690,18 @@ perform_cleanup() {
         # Scan for .app bundles - optimized with PlistBuddy and xargs
         for search_path in "${search_paths[@]}"; do
             [[ -d "$search_path" ]] || continue
-            find "$search_path" -maxdepth 3 -name "Info.plist" -path "*/Contents/Info.plist" 2>/dev/null | \
-                xargs -I {} /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" {} 2>/dev/null | \
+            find "$search_path" -maxdepth 3 -name "Info.plist" -path "*/Contents/Info.plist" 2> /dev/null |
+                xargs -I {} /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" {} 2> /dev/null |
                 grep -v "^$" >> "$installed_bundles" || true
         done
 
         # Get running applications - no timeout needed for fast osascript
-        osascript -e 'tell application "System Events" to get bundle identifier of every application process' 2>/dev/null | \
+        osascript -e 'tell application "System Events" to get bundle identifier of every application process' 2> /dev/null |
             tr ',' '\n' | sed -e 's/^ *//;s/ *$//' -e '/^$/d' >> "$installed_bundles" || true
 
         # Get LaunchAgents - fast operation, no timeout needed
-        find ~/Library/LaunchAgents /Library/LaunchAgents -name "*.plist" -type f 2>/dev/null | \
-            xargs -I {} basename {} .plist >> "$installed_bundles" 2>/dev/null || true
+        find ~/Library/LaunchAgents /Library/LaunchAgents -name "*.plist" -type f 2> /dev/null |
+            xargs -I {} basename {} .plist >> "$installed_bundles" 2> /dev/null || true
 
         # Deduplicate
         sort -u "$installed_bundles" -o "$installed_bundles"

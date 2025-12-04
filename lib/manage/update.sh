@@ -220,7 +220,7 @@ perform_updates() {
         # Check sudo access
         if ! has_sudo_session; then
             if ! ensure_sudo_session "Software updates require admin access"; then
-                echo -e "${YELLOW}${ICON_WARNING}${NC} Skipping App Store updates (admin authentication required)"
+                echo -e "${YELLOW}☻${NC} App Store updates available — update via System Settings"
                 echo ""
                 ((total_count--))
                 if [[ -n "${MACOS_UPDATE_AVAILABLE:-}" && "${MACOS_UPDATE_AVAILABLE}" == "true" ]]; then
@@ -237,8 +237,9 @@ perform_updates() {
     # Update macOS
     if [[ -n "${MACOS_UPDATE_AVAILABLE:-}" && "${MACOS_UPDATE_AVAILABLE}" == "true" && "$macos_handled_via_appstore" != "true" ]]; then
         if ! has_sudo_session; then
-            echo -e "${YELLOW}${ICON_WARNING}${NC} Skipping macOS updates (admin authentication required)"
+            echo -e "${YELLOW}☻${NC} macOS updates available — update via System Settings"
             echo ""
+            ((total_count--))
         else
             _perform_macos_update
         fi
@@ -258,15 +259,18 @@ perform_updates() {
     fi
 
     # Summary
-    if [[ $updated_count -eq $total_count && $total_count -gt 0 ]]; then
+    if [[ $total_count -eq 0 ]]; then
+        echo -e "${GRAY}No updates to perform${NC}"
+        return 0
+    elif [[ $updated_count -eq $total_count ]]; then
         echo -e "${GREEN}All updates completed (${updated_count}/${total_count})${NC}"
         return 0
     elif [[ $updated_count -gt 0 ]]; then
         echo -e "${YELLOW}Partial updates completed (${updated_count}/${total_count})${NC}"
-        return 1
+        return 0
     else
         echo -e "${RED}No updates were completed${NC}"
-        return 1
+        return 0
     fi
 }
 
