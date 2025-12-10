@@ -113,30 +113,49 @@ clean_orphaned_app_data() {
             local c="${spinner_chars:$((i % 4)):1}"
             echo -ne "\r\033[K  $c Scanning installed apps... $count found" >&2
             ((i++))
-            sleep 0.2 2> /dev/null || sleep 1
+            sleep 0.1
         done
     ) &
     local spinner_pid=$!
 
-    # Parallel scan for applications with increased timeout for large app directories
+    # Parallel scan for applications
     local pids=()
     local dir_idx=0
     for app_dir in "${app_dirs[@]}"; do
         [[ -d "$app_dir" ]] || continue
         (
-            # Increased timeout to 30s to handle large app directories (especially /System/Applications)
-            # Timeout errors are suppressed to prevent confusing output
-            run_with_timeout 30 sh -c "find '$app_dir' -name '*.app' -maxdepth 3 -type d 2> /dev/null" 2> /dev/null | while IFS= read -r app_path; do
-                local bundle_id
-                bundle_id=$(defaults read "$app_path/Contents/Info.plist" CFBundleIdentifier 2> /dev/null || echo "")
+            # Quickly find all .app bundles first
+            local -a app_paths=()
+            while IFS= read -r app_path; do
+                [[ -n "$app_path" ]] && app_paths+=("$app_path")
+            done < <(find "$app_dir" -name '*.app' -maxdepth 3 -type d 2> /dev/null)
+            
+            # Read bundle IDs with PlistBuddy
+            local count=0
+            for app_path in "${app_paths[@]}"; do
+                local plist_path="$app_path/Contents/Info.plist"
+                [[ ! -f "$plist_path" ]] && continue
+                
+                local bundle_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$plist_path" 2> /dev/null || echo "")
+                
                 if [[ -n "$bundle_id" ]]; then
                     echo "$bundle_id"
-                    # Update progress count atomically
-                    local current_count=$(cat "$progress_count_file" 2> /dev/null || echo "0")
-                    echo "$((current_count + 1))" > "$progress_count_file"
+                    ((count++))
+                    
+                    # Batch update progress every 10 apps to reduce I/O
+                    if [[ $((count % 10)) -eq 0 ]]; then
+                        local current=$(cat "$progress_count_file" 2> /dev/null || echo "0")
+                        echo "$((current + 10))" > "$progress_count_file"
+                    fi
                 fi
-            done > "$scan_tmp_dir/apps_${dir_idx}.txt"
-        ) &
+            done
+            
+            # Final progress update
+            if [[ $((count % 10)) -ne 0 ]]; then
+                local current=$(cat "$progress_count_file" 2> /dev/null || echo "0")
+                echo "$((current + count % 10))" > "$progress_count_file"
+            fi
+        ) > "$scan_tmp_dir/apps_${dir_idx}.txt" &
         pids+=($!)
         ((dir_idx++))
     done

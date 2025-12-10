@@ -126,8 +126,7 @@ start_inline_spinner() {
                 # Output to stderr to avoid interfering with stdout
                 printf "\r${MOLE_SPINNER_PREFIX:-}${BLUE}%s${NC} %s" "$c" "$message" >&2 || exit 0
                 ((i++))
-                # macOS supports decimal sleep, this is the primary target
-                sleep 0.1 2> /dev/null || sleep 1 2> /dev/null || exit 0
+                sleep 0.1
             done
         ) &
         INLINE_SPINNER_PID=$!
