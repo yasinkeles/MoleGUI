@@ -31,7 +31,13 @@ func collectCPU() (CPUStatus, error) {
 		logical = 1
 	}
 
-	percents, err := cpu.Percent(cpuSampleInterval, true)
+	// Use two-call pattern for more reliable CPU measurements
+	// First call: initialize/store current CPU times
+	cpu.Percent(0, true)
+	// Wait for sampling interval
+	time.Sleep(cpuSampleInterval)
+	// Second call: get actual percentages based on difference
+	percents, err := cpu.Percent(0, true)
 	var totalPercent float64
 	perCoreEstimated := false
 	if err != nil || len(percents) == 0 {
@@ -247,10 +253,10 @@ func fallbackCPUUtilization(logical int) (float64, []float64, error) {
 		total = maxTotal
 	}
 
-	perCore := make([]float64, logical)
 	avg := total / float64(logical)
+	perCore := make([]float64, logical)
 	for i := range perCore {
 		perCore[i] = avg
 	}
-	return total, perCore, nil
+	return avg, perCore, nil
 }

@@ -1,0 +1,68 @@
+#!/bin/bash
+# Pre-commit hook to ensure bin/analyze-go and bin/status-go are universal binaries
+
+set -e
+
+# ANSI color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if binaries are being committed
+binaries=()
+if git diff --cached --name-only | grep -q "^bin/analyze-go$"; then
+    binaries+=("bin/analyze-go")
+fi
+if git diff --cached --name-only | grep -q "^bin/status-go$"; then
+    binaries+=("bin/status-go")
+fi
+
+# If no binaries are being committed, exit early
+if [[ ${#binaries[@]} -eq 0 ]]; then
+    exit 0
+fi
+
+echo -e "${YELLOW}Checking compiled binaries...${NC}"
+
+# Verify each binary is a universal binary
+all_valid=true
+for binary in "${binaries[@]}"; do
+    if [[ ! -f "$binary" ]]; then
+        echo -e "${RED}✗ $binary not found${NC}"
+        all_valid=false
+        continue
+    fi
+
+    # Check if it's a universal binary
+    if file "$binary" | grep -q "Mach-O universal binary"; then
+        # Verify it contains both x86_64 and arm64
+        if lipo -info "$binary" 2>/dev/null | grep -q "x86_64 arm64"; then
+            echo -e "${GREEN}✓ $binary is a universal binary (x86_64 + arm64)${NC}"
+        elif lipo -info "$binary" 2>/dev/null | grep -q "arm64 x86_64"; then
+            echo -e "${GREEN}✓ $binary is a universal binary (x86_64 + arm64)${NC}"
+        else
+            echo -e "${RED}✗ $binary is missing required architectures${NC}"
+            lipo -info "$binary"
+            all_valid=false
+        fi
+    else
+        echo -e "${RED}✗ $binary is not a universal binary${NC}"
+        file "$binary"
+        all_valid=false
+    fi
+done
+
+if [[ "$all_valid" == "false" ]]; then
+    echo ""
+    echo -e "${RED}Commit rejected: binaries must be universal (x86_64 + arm64)${NC}"
+    echo ""
+    echo "To create universal binaries, run:"
+    echo "  ./scripts/build-analyze.sh"
+    echo "  ./scripts/build-status.sh"
+    echo ""
+    exit 1
+fi
+
+echo -e "${GREEN}All binaries verified!${NC}"
+exit 0

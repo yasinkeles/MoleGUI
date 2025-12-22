@@ -4,8 +4,6 @@
 
 set -euo pipefail
 
-export CGO_ENABLED=0
-
 cd "$(dirname "$0")/.."
 
 if ! command -v go > /dev/null 2>&1; then

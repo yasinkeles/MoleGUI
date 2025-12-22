@@ -5,6 +5,9 @@
 ```bash
 # Install development tools
 brew install shfmt shellcheck bats-core
+
+# Install git hooks (validates universal binaries)
+./scripts/setup-hooks.sh
 ```
 
 ## Development
@@ -154,7 +157,24 @@ Format: `[MODULE_NAME] message` output to stderr.
 - Format code with `gofmt -w ./cmd/...`
 - Run `go vet ./cmd/...` to check for issues
 - Build with `go build ./...` to verify all packages compile
-- Build universal binaries via `./scripts/build-status.sh` and `./scripts/build-analyze.sh`
+
+**Building Universal Binaries:**
+
+⚠️ **IMPORTANT**: Never use `go build` directly to create `bin/analyze-go` or `bin/status-go`!
+
+Mole must support both Intel and Apple Silicon Macs. Always use the build scripts:
+
+```bash
+# Build universal binaries (x86_64 + arm64)
+./scripts/build-analyze.sh
+./scripts/build-status.sh
+```
+
+For local development/testing, you can use:
+- `go run ./cmd/status` or `go run ./cmd/analyze` (quick iteration)
+- `go build ./cmd/status` (creates single-arch binary for testing)
+
+The pre-commit hook will prevent you from accidentally committing non-universal binaries.
 
 **Guidelines:**
 
