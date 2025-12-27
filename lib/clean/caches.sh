@@ -111,7 +111,7 @@ clean_service_worker_cache() {
                 echo -e "  ${GREEN}${ICON_SUCCESS}${NC} $browser_name Service Worker (${cleaned_mb}MB)"
             fi
         else
-            echo -e "  ${YELLOW}→${NC} $browser_name Service Worker (would clean ${cleaned_mb}MB, ${protected_count} protected)"
+            echo -e "  ${YELLOW}${ICON_DRY_RUN}${NC} $browser_name Service Worker (would clean ${cleaned_mb}MB, ${protected_count} protected)"
         fi
         note_activity
 
@@ -125,6 +125,8 @@ clean_service_worker_cache() {
 # Clean Next.js (.next/cache) and Python (__pycache__) build caches
 # Uses maxdepth 3, excludes Library/.Trash/node_modules, 10s timeout per scan
 clean_project_caches() {
+    stop_inline_spinner 2> /dev/null || true
+
     # Quick check: skip if user likely doesn't have development projects
     local has_dev_projects=false
     local -a common_dev_dirs=(
@@ -169,6 +171,13 @@ clean_project_caches() {
             "build.gradle"
         )
 
+        local spinner_active=false
+        if [[ -t 1 ]]; then
+            MOLE_SPINNER_PREFIX="  "
+            start_inline_spinner "Detecting dev projects..."
+            spinner_active=true
+        fi
+
         for marker in "${project_markers[@]}"; do
             # Quick check with maxdepth 2 and 3s timeout to avoid slow scans
             if run_with_timeout 3 sh -c "find '$HOME' -maxdepth 2 -name '$marker' -not -path '*/Library/*' -not -path '*/.Trash/*' 2>/dev/null | head -1" | grep -q .; then
@@ -176,6 +185,10 @@ clean_project_caches() {
                 break
             fi
         done
+
+        if [[ "$spinner_active" == "true" ]]; then
+            stop_inline_spinner 2> /dev/null || true
+        fi
 
         # If still no dev projects found, skip scanning
         [[ "$has_dev_projects" == "false" ]] && return 0
@@ -214,14 +227,15 @@ clean_project_caches() {
     ) > "$pycache_tmp_file" 2>&1 &
     local py_pid=$!
 
-    # 3. Wait for both with timeout
+    # 3. Wait for both with timeout (using smaller intervals for better responsiveness)
     local elapsed=0
-    while [[ $elapsed -lt $find_timeout ]]; do
+    local check_interval=0.2 # Check every 200ms instead of 1s for smoother experience
+    while [[ $(echo "$elapsed < $find_timeout" | awk '{print ($1 < $2)}') -eq 1 ]]; do
         if ! kill -0 $next_pid 2> /dev/null && ! kill -0 $py_pid 2> /dev/null; then
             break
         fi
-        sleep 1
-        ((elapsed++))
+        sleep $check_interval
+        elapsed=$(echo "$elapsed + $check_interval" | awk '{print $1 + $2}')
     done
 
     # 4. Clean up any stuck processes
