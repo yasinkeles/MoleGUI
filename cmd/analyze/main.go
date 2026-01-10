@@ -515,7 +515,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.deleting && m.deleteCount != nil {
 				count := atomic.LoadInt64(m.deleteCount)
 				if count > 0 {
-					m.status = fmt.Sprintf("Deleting... %s items removed", formatNumber(count))
+					m.status = fmt.Sprintf("Moving to Trash... %s items", formatNumber(count))
 				}
 			}
 			return m, tickCmd()

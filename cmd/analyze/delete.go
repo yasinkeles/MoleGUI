@@ -80,8 +80,8 @@ func (e *multiDeleteError) Error() string {
 // trashPathWithProgress moves a path to Trash using Finder.
 // This allows users to recover accidentally deleted files.
 func trashPathWithProgress(root string, counter *int64) (int64, error) {
-	// Verify path exists.
-	info, err := os.Stat(root)
+	// Verify path exists (use Lstat to handle broken symlinks).
+	info, err := os.Lstat(root)
 	if err != nil {
 		return 0, err
 	}
