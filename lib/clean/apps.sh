@@ -120,11 +120,11 @@ scan_installed_apps() {
     done
     # Collect running apps and LaunchAgents to avoid false orphan cleanup.
     (
-        local running_apps=$(run_with_timeout 5 osascript -e 'tell application "System Events" to get bundle identifier of every application process' 2>/dev/null || echo "")
+        local running_apps=$(run_with_timeout 5 osascript -e 'tell application "System Events" to get bundle identifier of every application process' 2> /dev/null || echo "")
         echo "$running_apps" | tr ',' '\n' | sed -e 's/^ *//;s/ *$//' -e '/^$/d' > "$scan_tmp_dir/running.txt"
         # Fallback: lsappinfo is more reliable than osascript
         if command -v lsappinfo > /dev/null 2>&1; then
-            run_with_timeout 3 lsappinfo list 2>/dev/null | grep -o '"CFBundleIdentifier"="[^"]*"' | cut -d'"' -f4 >> "$scan_tmp_dir/running.txt" 2>/dev/null || true
+            run_with_timeout 3 lsappinfo list 2> /dev/null | grep -o '"CFBundleIdentifier"="[^"]*"' | cut -d'"' -f4 >> "$scan_tmp_dir/running.txt" 2> /dev/null || true
         fi
     ) &
     pids+=($!)
@@ -188,7 +188,7 @@ is_bundle_orphaned() {
     done
 
     # 3. Fast path: check installed bundles file (file read, fast)
-    if grep -Fxq "$bundle_id" "$installed_bundles" 2>/dev/null; then
+    if grep -Fxq "$bundle_id" "$installed_bundles" 2> /dev/null; then
         return 1
     fi
 
@@ -220,16 +220,16 @@ is_bundle_orphaned() {
         fi
 
         # Check cache first (grep is fast for small files)
-        if grep -Fxq "FOUND:$bundle_id" "$ORPHAN_MDFIND_CACHE_FILE" 2>/dev/null; then
+        if grep -Fxq "FOUND:$bundle_id" "$ORPHAN_MDFIND_CACHE_FILE" 2> /dev/null; then
             return 1
         fi
-        if grep -Fxq "NOTFOUND:$bundle_id" "$ORPHAN_MDFIND_CACHE_FILE" 2>/dev/null; then
+        if grep -Fxq "NOTFOUND:$bundle_id" "$ORPHAN_MDFIND_CACHE_FILE" 2> /dev/null; then
             # Already checked, not found - continue to return 0
             :
         else
             # Query mdfind with strict timeout (2 seconds max)
             local app_exists
-            app_exists=$(run_with_timeout 2 mdfind "kMDItemCFBundleIdentifier == '$bundle_id'" 2>/dev/null | head -1 || echo "")
+            app_exists=$(run_with_timeout 2 mdfind "kMDItemCFBundleIdentifier == '$bundle_id'" 2> /dev/null | head -1 || echo "")
             if [[ -n "$app_exists" ]]; then
                 echo "FOUND:$bundle_id" >> "$ORPHAN_MDFIND_CACHE_FILE"
                 return 1
