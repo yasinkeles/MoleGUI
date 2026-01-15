@@ -37,6 +37,10 @@ create_app_artifacts() {
     mkdir -p "$HOME/Library/Preferences/ByHost"
     touch "$HOME/Library/Preferences/ByHost/com.example.TestApp.ABC123.plist"
     mkdir -p "$HOME/Library/Saved Application State/com.example.TestApp.savedState"
+    mkdir -p "$HOME/Library/LaunchAgents"
+    touch "$HOME/Library/LaunchAgents/com.example.TestApp.plist"
+    mkdir -p "$HOME/Library/LaunchDaemons"
+    touch "$HOME/Library/LaunchDaemons/com.example.TestApp.plist"
 }
 
 @test "find_app_files discovers user-level leftovers" {
@@ -55,6 +59,8 @@ EOF
     [[ "$result" == *"Preferences/com.example.TestApp.plist"* ]]
     [[ "$result" == *"Saved Application State/com.example.TestApp.savedState"* ]]
     [[ "$result" == *"Containers/com.example.TestApp"* ]]
+    [[ "$result" == *"LaunchAgents/com.example.TestApp.plist"* ]]
+    [[ "$result" == *"LaunchDaemons/com.example.TestApp.plist"* ]]
 }
 
 @test "calculate_total_size returns aggregate kilobytes" {
@@ -114,6 +120,8 @@ batch_uninstall_applications
 [[ ! -d "$HOME/Library/Application Support/TestApp" ]] || exit 1
 [[ ! -d "$HOME/Library/Caches/TestApp" ]] || exit 1
 [[ ! -f "$HOME/Library/Preferences/com.example.TestApp.plist" ]] || exit 1
+[[ ! -f "$HOME/Library/LaunchAgents/com.example.TestApp.plist" ]] || exit 1
+[[ ! -f "$HOME/Library/LaunchDaemons/com.example.TestApp.plist" ]] || exit 1
 EOF
 
     [ "$status" -eq 0 ]

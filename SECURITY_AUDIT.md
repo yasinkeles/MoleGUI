@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Status:** PASSED | **Risk Level:** LOW | **Version:** 1.19.0 (2026-01-09)
+**Status:** PASSED | **Risk Level:** LOW | **Version:** 1.21.0 (2026-01-15)
 
 </div>
 
@@ -12,9 +12,9 @@
 
 | Attribute | Details |
 |-----------|---------|
-| Audit Date | January 9, 2026 |
+| Audit Date | January 15, 2026 |
 | Audit Conclusion | **PASSED** |
-| Mole Version | V1.19.0 |
+| Mole Version | V1.21.0 |
 | Audited Branch | `main` (HEAD) |
 | Scope | Shell scripts, Go binaries, Configuration |
 | Methodology | Static analysis, Threat modeling, Code review |
@@ -176,18 +176,18 @@ For user-selected app removal:
 | AI & LLM Tools | Cursor, Claude, ChatGPT, Ollama, LM Studio | Protects models, tokens, and sessions |
 | Startup Items | `com.apple.*` LaunchAgents/Daemons | System items unconditionally skipped |
 
-**Orphaned Helper Cleanup (`opt_startup_items_cleanup`):**
+**LaunchAgent/LaunchDaemon Cleanup During Uninstallation:**
 
-Removes LaunchAgents/Daemons whose associated app has been uninstalled:
+When users uninstall applications via `mo uninstall`, Mole automatically removes associated LaunchAgent and LaunchDaemon plists:
 
-- Checks `AssociatedBundleIdentifiers` to detect orphans.
-- Skips all `com.apple.*` system items.
-- Skips paths under `/System/*`, `/usr/bin/*`, `/usr/lib/*`, `/usr/sbin/*`, `/Library/Apple/*`.
-- Uses `safe_remove` / `safe_sudo_remove` with path validation.
-- Unloads service via `launchctl` before deletion.
-- **Timeout Protection:** 10-second limit on `mdfind` operations.
+- Scans `~/Library/LaunchAgents`, `~/Library/LaunchDaemons`, `/Library/LaunchAgents`, `/Library/LaunchDaemons`
+- Matches both exact bundle ID (`com.example.app.plist`) and app name patterns (`*AppName*.plist`)
+- Skips all `com.apple.*` system items via `should_protect_path()` validation
+- Unloads services via `launchctl` before deletion (via `stop_launch_services()`)
+- **Safer than orphan detection:** Only removes plists when the associated app is explicitly being uninstalled
+- Prevents accumulation of orphaned startup items that persist after app removal
 
-**Code:** `lib/optimize/tasks.sh:opt_startup_items_cleanup()`
+**Code:** `lib/core/app_protection.sh:find_app_files()`, `lib/uninstall/batch.sh:stop_launch_services()`
 
 ### Crash Safety & Atomic Operations
 
