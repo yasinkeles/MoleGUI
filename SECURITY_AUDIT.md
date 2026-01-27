@@ -64,13 +64,15 @@ See `lib/core/app_protection.sh:find_app_files()`.
 
 ## Protected Categories
 
-| Category | What's protected |
-| -------- | ---------------- |
-| System | Control Center, System Settings, TCC, `/Library/Updates`, Spotlight |
-| VPN/Proxy | Shadowsocks, V2Ray, Tailscale, Clash |
-| AI | Cursor, Claude, ChatGPT, Ollama, LM Studio |
-| Time Machine | Checks if backup is running. If status unclear, skips cleanup. |
-| Startup | `com.apple.*` LaunchAgents/Daemons always skipped |
+System stuff stays untouched: Control Center, System Settings, TCC, Spotlight, `/Library/Updates`.
+
+VPN and proxy tools are skipped: Shadowsocks, V2Ray, Tailscale, Clash.
+
+AI tools are protected: Cursor, Claude, ChatGPT, Ollama, LM Studio.
+
+Time Machine backups running? Won't clean. Status unclear? Also won't clean.
+
+`com.apple.*` LaunchAgents/Daemons are never touched.
 
 See `lib/core/app_protection.sh:is_critical_system_component()`.
 
@@ -87,12 +89,7 @@ Code at `cmd/analyze/*.go`.
 
 ## Timeouts
 
-| Operation | Timeout | Why |
-| --------- | ------- | --- |
-| Network volume check | 5s | NFS/SMB/AFP can hang forever |
-| App bundle search | 10s | mdfind sometimes stalls |
-| SQLite vacuum | 20s | Skip if Mail/Safari/Messages is open |
-| dyld cache rebuild | 180s | Skip if done in last 24h |
+Network volume checks timeout after 5s (NFS/SMB/AFP can hang forever). mdfind searches get 10s. SQLite vacuum gets 20s, skipped if Mail/Safari/Messages is open. dyld cache rebuild gets 180s, skipped if done in the last 24h.
 
 See `lib/core/base.sh:run_with_timeout()`.
 
@@ -112,18 +109,12 @@ Run `mo clean --dry-run` or `mo optimize --dry-run` to preview what would happen
 
 ## Testing
 
-| Area | Coverage |
-| ---- | -------- |
-| File ops | 95% |
-| Cleaning | 87% |
-| Optimize | 82% |
-| System | 90% |
-| Security | 100% |
+180+ test cases, roughly 88% coverage overall. Security stuff is 100% covered, file ops 95%, cleaning 87%, optimize 82%, system 90%.
 
-180+ test cases total, about 88% coverage.
+Run tests:
 
 ```bash
-bats tests/              # run all
+bats tests/              # all
 bats tests/security.bats # security only
 ```
 
@@ -131,39 +122,12 @@ CI runs shellcheck and go vet on every push.
 
 ## Dependencies
 
-System binaries used, all SIP protected:
+System binaries we use are all SIP protected: `plutil` (plist validation), `tmutil` (Time Machine), `dscacheutil` (cache rebuild), `diskutil` (volume info).
 
-| Binary | For |
-| ------ | --- |
-| `plutil` | plist validation |
-| `tmutil` | Time Machine |
-| `dscacheutil` | cache rebuild |
-| `diskutil` | volume info |
-
-Go libs in analyze-go:
-
-| Lib | Version | License |
-| --- | ------- | ------- |
-| `bubbletea` | v0.23+ | MIT |
-| `lipgloss` | v0.6+ | MIT |
-| `gopsutil` | v3.22+ | BSD-3 |
-| `xxhash` | v2.2+ | BSD-2 |
-
-Versions are pinned. No CVEs. Binaries built via GitHub Actions.
+Go deps: bubbletea v0.23+, lipgloss v0.6+, gopsutil v3.22+, xxhash v2.2+. All MIT/BSD licensed. Versions are pinned, no CVEs. Binaries built via GitHub Actions.
 
 ## Limitations
 
-| What | Impact | Workaround |
-| ---- | ------ | ---------- |
-| Needs sudo for system caches | Annoying first time | Docs explain why |
-| 60-day wait for orphans | Some junk stays longer | Use `mo uninstall` manually |
-| No undo | Gone is gone | Use dry-run first |
-| English names only | Might miss localized apps | Falls back to bundle ID |
+System cache cleanup needs sudo, first time you'll get a password prompt. Orphan files wait 60 days before cleanup, use `mo uninstall` to delete manually if you're in a hurry. No undo, gone is gone, use dry-run first. Only recognizes English names, localized app names might be missed, but falls back to bundle ID.
 
-**Won't touch:**
-
-- Your documents or media
-- Password managers or keychains
-- Files under `/etc`
-- Browser history/cookies
-- Git repos
+Won't touch: documents, media files, password managers, keychains, configs under `/etc`, browser history/cookies, git repos.
