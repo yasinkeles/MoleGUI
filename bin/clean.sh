@@ -970,6 +970,7 @@ perform_cleanup() {
     start_section "Uninstalled app data"
     clean_orphaned_app_data
     clean_orphaned_system_services
+    clean_orphaned_launch_agents
     end_section
 
     # ===== 13. Apple Silicon optimizations =====
