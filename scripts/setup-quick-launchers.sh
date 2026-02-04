@@ -250,28 +250,13 @@ create_raycast_commands() {
     log_success "Scripts ready in: $dir"
 
     log_header "Raycast Configuration"
-    if command -v open > /dev/null 2>&1; then
-        if open "raycast://extensions/raycast/raycast-settings/extensions" > /dev/null 2>&1 2> /dev/null; then
-            log_step "Raycast settings opened."
-        else
-            log_warn "Could not auto-open Raycast settings (raycast:// URL may be unavailable). Please open Raycast manually."
-        fi
-    else
-        log_warn "open command not available; please open Raycast manually."
-    fi
-
+    log_step "Open Raycast → Settings → Extensions → Script Commands."
     echo "If Raycast asks to add a Script Directory, use:"
     echo "  $dir"
 
     if is_interactive; then
         log_header "Finalizing Setup"
-        prompt_enter "Press [Enter] to reload script directories in Raycast..."
-        if command -v open > /dev/null 2>&1 && open "raycast://extensions/raycast/raycast/reload-script-directories" > /dev/null 2>&1 2> /dev/null; then
-            log_step "Raycast script directories reloaded."
-        else
-            log_warn "Could not auto-reload Raycast script directories (raycast:// URL may be unavailable)."
-        fi
-
+        prompt_enter "Press [Enter] after clicking 'Reload Script Directories' in Raycast..."
         log_success "Raycast setup complete!"
     else
         log_warn "Non-interactive mode; skip Raycast reload. Please run 'Reload Script Directories' in Raycast."
