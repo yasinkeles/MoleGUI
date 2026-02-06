@@ -1,3 +1,5 @@
+<img width="1004" height="670" alt="resim" src="https://github.com/user-attachments/assets/77760b03-0332-4598-afe6-f8960bf7ff91" />
+
 <div align="center">
   <h1>Mole</h1>
   <p><em>Deep clean and optimize your Mac for MOLEGUI</em></p>
