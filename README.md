@@ -1,4 +1,3 @@
-<img width="1004" height="670" alt="resim" src="https://github.com/user-attachments/assets/77760b03-0332-4598-afe6-f8960bf7ff91" />
 
 <div align="center">
   <h1>Mole</h1>
@@ -17,6 +16,7 @@
 <p align="center">
   <img src="https://cdn.tw93.fun/img/mole.jpeg" alt="Mole - 95.50GB freed" width="1000" />
 </p>
+<img width="1004" height="670" alt="resim" src="https://github.com/user-attachments/assets/77760b03-0332-4598-afe6-f8960bf7ff91" />
 
 ## Features
 
